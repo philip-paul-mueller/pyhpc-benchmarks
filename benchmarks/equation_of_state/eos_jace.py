@@ -265,6 +265,8 @@ def run(sa, ct, p, device="cpu"):
 
 
 def prepare_inputs(sa, ct, p, device):
+    # Without clearing the cache we get problems when the "destrictor" runs.
+    #  It is not related to memory but to the streams I am not fully sure why.
     jace.util.translation_cache.clear_translation_cache()
     if device == "cpu":
         inputs = (sa, ct, p)
