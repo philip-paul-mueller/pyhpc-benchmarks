@@ -116,7 +116,7 @@ def main(benchmark, size=None, backend=None, repetitions=None, burnin=1, device=
     for b in backend.copy():
         try:
             with setup_functions[b](device=device) as bmod:
-                click.echo(f"Using {b} version {bmod.__version__}")
+                click.echo(f"Using {b} version {getattr(bmod, '__version__', '?')}")
         except BackendNotSupported as e:
             click.echo(
                 f'Setup for backend "{b}" failed (skipping), reason: {e!s}', err=True

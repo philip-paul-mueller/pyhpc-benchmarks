@@ -19,7 +19,6 @@ def generate_inputs(size):
     p = np.random.uniform(0, 1000, size=(1, 1, shape[-1]))
     return s, t, p
 
-
 def try_import(backend):
     try:
         return importlib.import_module(f".eos_{backend}", __name__)
@@ -44,4 +43,5 @@ __implementations__ = (
     "pytorch",
     "tensorflow",
     "taichi",
+    "jace",
 )

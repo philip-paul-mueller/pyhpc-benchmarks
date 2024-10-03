@@ -16,7 +16,7 @@ def convert_to_numpy(arr, backend, device="cpu"):
     if backend == "cupy":
         return arr.get()
 
-    if backend == "jax":
+    if backend in {"jax", "jace"}:
         return numpy.asarray(arr)
 
     if backend == "pytorch":
@@ -149,15 +149,14 @@ def setup_jax(device="cpu"):
         os.environ.update(JAX_PLATFORM_NAME=device)
 
     import jax
-    from jax.config import config
 
     if device == "tpu":
-        config.update("jax_xla_backend", "tpu_driver")
-        config.update("jax_backend_target", os.environ.get("JAX_BACKEND_TARGET"))
+        jax.config.update("jax_xla_backend", "tpu_driver")
+        jax.config.update("jax_backend_target", os.environ.get("JAX_BACKEND_TARGET"))
 
     if device != "tpu":
         # use 64 bit floats (not supported on TPU)
-        config.update("jax_enable_x64", True)
+        jax.config.update("jax_enable_x64", True)
 
     if device == "gpu":
         assert len(jax.devices()) > 0
@@ -215,6 +214,17 @@ def setup_taichi(device="cpu"):
 
     yield taichi
 
+
+@setup_function
+def setup_jace(device="cpu"):
+    # TODO: Find out how to make serial code, i.e. not even issue OMP for loops.
+    os.environ.update(
+        OMP_NUM_THREADS="1",
+    )
+    import jace
+    with jace.stages.set_compiler_options(jace.optimization.DEFAULT_OPTIMIZATIONS | {"auto_optimize": True}):
+        yield
+
 __backends__ = {
     "numpy": setup_numpy,
     "cupy": setup_cupy,
@@ -224,4 +234,5 @@ __backends__ = {
     "pytorch": setup_pytorch,
     "tensorflow": setup_tensorflow,
     "taichi": setup_taichi,
+    "jace": setup_jace,
 }
