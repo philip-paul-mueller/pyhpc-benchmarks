@@ -267,12 +267,27 @@ def run(sa, ct, p, device="cpu"):
 def prepare_inputs(sa, ct, p, device):
     # Without clearing the cache we get problems when the "destrictor" runs.
     #  It is not related to memory but to the streams I am not fully sure why.
+    #  The main drawback is, that we have to actually run the lowering multiple times,
+    #  twice per size, maybe the whole thing is related to the memory errors.
     jace.util.translation_cache.clear_translation_cache()
+
     if device == "cpu":
         inputs = (sa, ct, p)
     elif device == "gpu":
+        import cupy
+        cupy.get_default_memory_pool().free_all_blocks()
+        cupy.get_default_pinned_memory_pool().free_all_blocks()
+
         inputs = [cp.asarray(k) for k in (sa, ct, p)]
         cp.cuda.stream.get_current_stream().synchronize()
-    _ = run(*inputs, device=device)
+
+    # We now force a lowering. The reason is that the function that is returned by the
+    #  `get_callable()` does not have to perform a lowering, the first time it is run.
+    #  Because of how `run.py` is implemented we have to set optimisation settings
+    #  ourselves.
+    with jace.stages.set_compiler_options(jace.optimization.DEFAULT_OPTIMIZATIONS | {"auto_optimize": True}):
+        _ = run(*inputs, device=device)
+
+
     return inputs
 

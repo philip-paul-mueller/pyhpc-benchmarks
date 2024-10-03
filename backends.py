@@ -222,6 +222,8 @@ def setup_jace(device="cpu"):
         OMP_NUM_THREADS="1",
     )
     import jace
+    # For certain reasons we have to replicate this in the `eos_jace::prepare_inputs()` function
+    #  This is because that particular function is not called under these settings.
     with jace.stages.set_compiler_options(jace.optimization.DEFAULT_OPTIMIZATIONS | {"auto_optimize": True}):
         yield
 
