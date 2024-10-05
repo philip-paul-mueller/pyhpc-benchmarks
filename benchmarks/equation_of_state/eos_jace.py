@@ -262,6 +262,9 @@ def run(sa, ct, p, device="cpu"):
     lowered = wrapped.lower(sa, ct, p)
     compiled = lowered.compile()
     csdfg = compiled._compiled_sdfg.compiled_sdfg
+    sdfg = csdfg._sdfg
+    output_names = compiled._compiled_sdfg.output_names
+    input_names = compiled._compiled_sdfg.input_names
 
     if not hasattr(csdfg, "_benchmark_args"):
         # The main issue we have is related to memory allocation, so we avoid that.
@@ -276,18 +279,31 @@ def run(sa, ct, p, device="cpu"):
         #  it does work. For that reason we have to reimplement the calling code!
         import dace
         from dace import data as dace_data
-        sdfg = csdfg._sdfg
-        # This inherently assumes that we do not have a JAX array.
-        sdfg_call_args: dict[str, Any] = {input_name: arr for input_name, arr in zip(compiled._compiled_sdfg.input_names, [sa, ct, p])}
-        for output_name in compiled._compiled_sdfg.output_names:
-            sdfg_call_args[output_name] = dace_data.make_array_from_descriptor(sdfg.arrays[output_name])
-        with dace.config.temporary_config():
-            dace.Config.set("compiler", "allow_view_arguments", value=True)
-            csdfg(**sdfg_call_args)
+        if True:
+            sdfg_call_args: dict[str, Any] = {
+                    input_name: arr  # This inherently assumes that we do not have a JAX array.
+                    for input_name, arr in zip(input_names, [sa, ct, p])
+            }
+            sdfg_call_args.update({
+                    output_name: dace_data.make_array_from_descriptor(sdfg.arrays[output_name])
+                    for output_name in output_names
+            })
+            with dace.config.temporary_config():
+                dace.Config.set("compiler", "allow_view_arguments", value=True)
+                csdfg(**sdfg_call_args)
+        else:
+            # The simple thing that does not work
+            _ret = compiled(sa, ct, p)
+            sdfg_call_args = {
+                    "sa": sa,
+                    "ct": ct,
+                    "p": p,
+                    output_names[0]: _ret
+            }
         setattr(csdfg, "_benchmark_args", sdfg_call_args)
 
     csdfg.fast_call(*csdfg._lastargs)
-    return [csdfg._benchmark_args[output_name] for output_name in compiled._compiled_sdfg.output_names]
+    return [csdfg._benchmark_args[output_name] for output_name in output_names]
 
 
 def prepare_inputs(sa, ct, p, device):
