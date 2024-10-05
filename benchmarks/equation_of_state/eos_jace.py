@@ -258,21 +258,44 @@ def gsw_dHdT_cpu(sa, ct, p):
 
 
 def run(sa, ct, p, device="cpu"):
-    if device == "cpu":
-        return gsw_dHdT_cpu(sa, ct, p)
-    else:
-        return gsw_dHdT_gpu(sa, ct, p)
+    wrapped = gsw_dHdT_cpu if device == "cpu" else gsw_dHdT_gpu
+    lowered = wrapped.lower(sa, ct, p)
+    compiled = lowered.compile()
+    csdfg = compiled._compiled_sdfg.compiled_sdfg
+
+    if not hasattr(csdfg, "_benchmark_args"):
+        # The main issue we have is related to memory allocation, so we avoid that.
+        #  This is a bit unfair to JAX, but since it does more in C++ it is not that
+        #  much of a concern.
+        # Thus we will allocate the memory once and then use `CompiledSDFG.fast_call()`
+        #  and `CompiledSDFG._lastargs` to perform the call. However, we also have to
+        #  ensure that the memory stays alive, th
+        #  The simplest thing would be to attach the return value and arguments to the
+        #  SDFG object (or any related object). However, this leads to memory corruption.
+        #  This is caused because JaCe returns JAX array, if it returns NumPy arrays
+        #  it does work. For that reason we have to reimplement the calling code!
+        import dace
+        from dace import data as dace_data
+        sdfg = csdfg._sdfg
+        # This inherently assumes that we do not have a JAX array.
+        sdfg_call_args: dict[str, Any] = {input_name: arr for input_name, arr in zip(compiled._compiled_sdfg.input_names, [sa, ct, p])}
+        for output_name in compiled._compiled_sdfg.output_names:
+            sdfg_call_args[output_name] = dace_data.make_array_from_descriptor(sdfg.arrays[output_name])
+        with dace.config.temporary_config():
+            dace.Config.set("compiler", "allow_view_arguments", value=True)
+            csdfg(**sdfg_call_args)
+        setattr(csdfg, "_benchmark_args", sdfg_call_args)
+
+    csdfg.fast_call(*csdfg._lastargs)
+    return [csdfg._benchmark_args[output_name] for output_name in compiled._compiled_sdfg.output_names]
 
 
 def prepare_inputs(sa, ct, p, device):
     if device == "cpu":
         inputs = (sa, ct, p)
     elif device == "gpu":
-        import cupy
-        cupy.get_default_memory_pool().free_all_blocks()
-        cupy.get_default_pinned_memory_pool().free_all_blocks()
+        cp.get_default_memory_pool().free_all_blocks()
+        cp.get_default_pinned_memory_pool().free_all_blocks()
         inputs = [cp.asarray(k) for k in (sa, ct, p)]
         cp.cuda.stream.get_current_stream().synchronize()
-
     return inputs
-
