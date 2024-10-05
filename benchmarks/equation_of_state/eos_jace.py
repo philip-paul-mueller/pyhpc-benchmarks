@@ -303,7 +303,9 @@ def run(sa, ct, p, device="cpu"):
             }
         setattr(csdfg, "_benchmark_args", sdfg_call_args)
 
-    csdfg.fast_call(*csdfg._lastargs)
+    else:
+        # Do not call the computation twice when memory is allocated.
+        csdfg.fast_call(*csdfg._lastargs)
     return [csdfg._benchmark_args[output_name] for output_name in output_names]
 
 
