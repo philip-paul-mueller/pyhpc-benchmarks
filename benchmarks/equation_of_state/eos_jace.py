@@ -277,6 +277,7 @@ def run(sa, ct, p, device="cpu"):
         #  SDFG object (or any related object). However, this leads to memory corruption.
         #  This is caused because JaCe returns JAX array, if it returns NumPy arrays
         #  it does work. For that reason we have to reimplement the calling code!
+        # NOTE: Also look at the setup function!
         import dace
         from dace import data as dace_data
         if True:

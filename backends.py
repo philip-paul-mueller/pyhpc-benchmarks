@@ -217,12 +217,21 @@ def setup_taichi(device="cpu"):
 
 @setup_function
 def setup_jace(device="cpu"):
+    import jace
     # TODO: Find out how to make serial code, i.e. not even issue OMP for loops.
     os.environ.update(
         OMP_NUM_THREADS="1",
     )
-    import jace
+
     with jace.stages.set_compiler_options(jace.optimization.DEFAULT_OPTIMIZATIONS | {"auto_optimize": True}):
+        if(device == "gpu"):
+            pass
+            # According to the CuPy doc (https://docs.cupy.dev/en/stable/user_guide/memory.html)
+            #  this will disable caching of the allocation. However, we disable it for now.
+            #  Since we restricted the numbers of allocations.
+            #import cupy as cp
+            #cp.cuda.set_allocator(None)
+            #cp.cuda.set_pinned_memory_allocator(None)
         yield
 
 __backends__ = {
