@@ -1,22 +1,40 @@
 import math
 import importlib
 import functools
+import sys
 
 
 def generate_inputs(size):
     import numpy as np
 
     np.random.seed(17)
+    use_simple_shapes = True
 
-    shape = (
-        math.ceil(2 * size ** (1 / 3)),
-        math.ceil(2 * size ** (1 / 3)),
-        math.ceil(0.25 * size ** (1 / 3)),
-    )
+    if use_simple_shapes:
+        if not getattr(generate_inputs, "_printed_shape_warning", False):
+            print("", file=sys.stderr)
+            print("#========================================", file=sys.stderr)
+            print("# USES SIMPLE SHAPE", file=sys.stderr)
+            print("#========================================", file=sys.stderr)
+            generate_inputs._printed_shape_warning = True
+        shape = (
+            math.ceil(2 * size ** (1 / 3)),
+            math.ceil(2 * size ** (1 / 3)),
+            math.ceil(0.25 * size ** (1 / 3)),
+        )
+        shape_p = shape
+
+    else:
+        shape = (
+            math.ceil(2 * size ** (1 / 3)),
+            math.ceil(2 * size ** (1 / 3)),
+            math.ceil(0.25 * size ** (1 / 3)),
+        )
+        shape_p = (1, 1, shape[-1])
 
     s = np.random.uniform(1e-2, 10, size=shape)
     t = np.random.uniform(-12, 20, size=shape)
-    p = np.random.uniform(0, 1000, size=(1, 1, shape[-1]))
+    p = np.random.uniform(0, 1000, size=shape_p)
     return s, t, p
 
 def try_import(backend):
