@@ -261,52 +261,25 @@ def run(sa, ct, p, device="cpu"):
     wrapped = gsw_dHdT_cpu if device == "cpu" else gsw_dHdT_gpu
     lowered = wrapped.lower(sa, ct, p)
     compiled = lowered.compile()
-    csdfg = compiled._compiled_sdfg.compiled_sdfg
-    sdfg = csdfg._sdfg
+    csdfg = compiled._compiled_sdfg
     output_names = compiled._compiled_sdfg.output_names
-    input_names = compiled._compiled_sdfg.input_names
 
-    if not hasattr(csdfg, "_benchmark_args"):
+    if not hasattr(csdfg.compiled_sdfg, "_csdfg_call_args"):
         # The main issue we have is related to memory allocation, so we avoid that.
         #  This is a bit unfair to JAX, but since it does more in C++ it is not that
         #  much of a concern.
         # Thus we will allocate the memory once and then use `CompiledSDFG.fast_call()`
         #  and `CompiledSDFG._lastargs` to perform the call. However, we also have to
-        #  ensure that the memory stays alive, th
-        #  The simplest thing would be to attach the return value and arguments to the
-        #  SDFG object (or any related object). However, this leads to memory corruption.
-        #  This is caused because JaCe returns JAX array, if it returns NumPy arrays
-        #  it does work. For that reason we have to reimplement the calling code!
-        # NOTE: Also look at the setup function!
-        import dace
-        from dace import data as dace_data
-        if True:
-            sdfg_call_args: dict[str, Any] = {
-                    input_name: arr  # This inherently assumes that we do not have a JAX array.
-                    for input_name, arr in zip(input_names, [sa, ct, p])
-            }
-            sdfg_call_args.update({
-                    output_name: dace_data.make_array_from_descriptor(sdfg.arrays[output_name])
-                    for output_name in output_names
-            })
-            with dace.config.temporary_config():
-                dace.Config.set("compiler", "allow_view_arguments", value=True)
-                csdfg(**sdfg_call_args)
-        else:
-            # The simple thing that does not work
-            _ret = compiled(sa, ct, p)
-            sdfg_call_args = {
-                    "sa": sa,
-                    "ct": ct,
-                    "p": p,
-                    output_names[0]: _ret
-            }
-        setattr(csdfg, "_benchmark_args", sdfg_call_args)
+        #  ensure that the memory stays alive.
+        csdfg_call_args = csdfg._construct_csdfg_args((sa, ct, p))
+        setattr(csdfg.compiled_sdfg, "_csdfg_call_args", csdfg_call_args)
 
-    else:
-        # Do not call the computation twice when memory is allocated.
-        csdfg.fast_call(*csdfg._lastargs)
-    return [csdfg._benchmark_args[output_name] for output_name in output_names]
+    csdfg_call_args = getattr(csdfg.compiled_sdfg, "_csdfg_call_args")
+    csdfg._call_csdfg(csdfg_call_args)
+
+    # We do not translate it back to a JAX array, because this would render the
+    #  return buffer off limits for us.
+    return csdfg_call_args[output_names[0]]
 
 
 def prepare_inputs(sa, ct, p, device):
