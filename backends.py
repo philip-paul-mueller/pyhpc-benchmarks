@@ -16,7 +16,12 @@ def convert_to_numpy(arr, backend, device="cpu"):
     if backend == "cupy":
         return arr.get()
 
-    if backend in {"jax", "jace"}:
+    if backend == "jace":
+        if device == "gpu" and hasattr(arr, "get"):
+            return arr.get()
+        return numpy.asarray(arr)
+
+    if backend == "jax":
         return numpy.asarray(arr)
 
     if backend == "pytorch":
