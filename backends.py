@@ -227,11 +227,10 @@ def setup_jace(device="cpu"):
         if(device == "gpu"):
             pass
             # According to the CuPy doc (https://docs.cupy.dev/en/stable/user_guide/memory.html)
-            #  this will disable caching of the allocation. However, we disable it for now.
-            #  Since we restricted the numbers of allocations.
-            #import cupy as cp
-            #cp.cuda.set_allocator(None)
-            #cp.cuda.set_pinned_memory_allocator(None)
+            #  this will disable caching of the allocations.
+            import cupy as cp
+            cp.cuda.set_allocator(None)
+            cp.cuda.set_pinned_memory_allocator(None)
         yield
 
 __backends__ = {
