@@ -236,7 +236,7 @@ def setup_jace(device="cpu"):
             import cupy as cp
             cp.cuda.set_allocator(None)
             cp.cuda.set_pinned_memory_allocator(None)
-        yield
+        yield jace
 
 __backends__ = {
     "numpy": setup_numpy,
