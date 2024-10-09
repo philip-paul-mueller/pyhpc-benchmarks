@@ -253,7 +253,12 @@ def gsw_dHdT(sa, ct, p):
 
 
 def prepare_inputs(sa, ct, p, device):
-    out = [np.array(k) for k in (sa, ct, p)]
+    out = [
+            k
+            if isinstance(k, jax.Array)
+            else np.array(k)
+            for k in (sa, ct, p)
+    ]
     for o in out:
         o.block_until_ready()
     return out

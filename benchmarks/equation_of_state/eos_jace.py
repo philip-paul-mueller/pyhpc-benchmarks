@@ -288,6 +288,11 @@ def prepare_inputs(sa, ct, p, device):
     elif device == "gpu":
         cp.get_default_memory_pool().free_all_blocks()
         cp.get_default_pinned_memory_pool().free_all_blocks()
-        inputs = [cp.asarray(k) for k in (sa, ct, p)]
+        inputs = [
+                k
+                if isinstance(k, cp.ndarray)
+                else cp.asarray(k)
+                for k in (sa, ct, p)
+        ]
         cp.cuda.stream.get_current_stream().synchronize()
     return inputs

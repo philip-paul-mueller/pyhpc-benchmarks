@@ -4,6 +4,7 @@ import functools
 import sys
 
 
+@functools.cache
 def generate_inputs(size):
     import numpy as np
 
