@@ -23,6 +23,7 @@ from utilities import (
 
 
 DEFAULT_SIZE = tuple(2 ** i for i in range(12, 23, 2))
+DEFAULT_SIZE = tuple( x * (1024**2) for x in [100, 200, 300, 400, 500])
 
 
 @click.command("run")

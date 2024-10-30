@@ -7,9 +7,12 @@ import sys
 @functools.cache
 def generate_inputs(size):
     import numpy as np
+    import gc
 
     np.random.seed(17)
     use_simple_shapes = True
+    gc.enable()
+    gc.collect()
 
     if use_simple_shapes:
         if not getattr(generate_inputs, "_printed_shape_warning", False):

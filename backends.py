@@ -236,6 +236,7 @@ def setup_jace(device="cpu"):
             import cupy as cp
             cp.cuda.set_allocator(None)
             cp.cuda.set_pinned_memory_allocator(None)
+            cp.cuda.stream.get_current_stream().synchronize()
         yield jace
 
 __backends__ = {
