@@ -285,21 +285,20 @@ def run(sa, ct, p, device="cpu"):
 def prepare_inputs(sa, ct, p, device):
     import gc
 
+    # Optimally we would also call `jace.util.translation_cache.clear_translation_cache()`
+    #  but this would destroy our strategy in the run function.
+    gc.enable()
+    gc.collect()
+
     if device == "cpu":
         inputs = (sa, ct, p)
     elif device == "gpu":
-        gc.enable()
-        gc.collect()
+
         mempool = cp.get_default_memory_pool()
         mempoolpin = cp.get_default_pinned_memory_pool()
-
-        print(f"Def Memory Pool used: {mempool.used_bytes()}")
-        print(f"Def Memory Pool total: {mempool.total_bytes()}")
         mempool.free_all_blocks()
         mempoolpin.free_all_blocks()
         cp.cuda.stream.get_current_stream().synchronize()
-        print(f"Def Memory Pool used (A): {mempool.used_bytes()}")
-        print(f"Def Memory Pool tota (A): {mempool.total_bytes()}")
 
         inputs = [
                 k
