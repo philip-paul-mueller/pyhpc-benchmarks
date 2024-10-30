@@ -18,6 +18,11 @@ import gc
 import time
 import jace
 
+DEFAULT_SIZE = tuple( x * (1024 ** 2) for x in [100, 200, 300, 400, 500])
+burnin = 4
+device = "gpu"
+
+
 try:
     import cupy as cp
 except ImportError:
@@ -44,11 +49,8 @@ def cleanup(device):
 
 def main():
     benchmark = "benchmarks/equation_of_state"
-    device = "gpu"
     bm_module, bm_identifier = get_benchmark_module(benchmark)
     jace_be = bm_module.try_import("jace")
-
-    DEFAULT_SIZE = tuple( x * (1024**2) for x in [100, 200, 300, 400, 500])
 
     for size in DEFAULT_SIZE:
         print(f"START WITH SIZE: {size}")
@@ -57,20 +59,24 @@ def main():
         del sa_np, ct_np, p_np
 
         cleanup(device)
+
+        # Perform the burn in
+        for _ in range(burnin):
+            jace_be.run(sa, ct, p, device=device)
+
         timings = []
         for rep in range(10):
             start = time.time()
             jace_be.run(sa, ct, p, device=device)
             end = time.time()
             timings.append(end - start)
+        print(f"{size}: {timings}")
 
         del sa, ct, p
         cleanup(device)
 
-    print(timings)
-
-
 if __name__ == "__main__":
-    main()
+    with setup_functions["jace"](device=device):
+        main()
 
 
