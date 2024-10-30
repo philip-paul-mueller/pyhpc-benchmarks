@@ -6,6 +6,10 @@ import sys
 
 @functools.cache
 def generate_inputs(size):
+    return generate_inputs_uncached(size)
+
+
+def generate_inputs_uncached(size):
     import numpy as np
     import gc
 
