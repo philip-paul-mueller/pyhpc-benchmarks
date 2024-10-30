@@ -298,6 +298,8 @@ def prepare_inputs(sa, ct, p, device):
         mempool.free_all_blocks()
         mempoolpin.free_all_blocks()
         cp.cuda.stream.get_current_stream().synchronize()
+        print(f"Def Memory Pool used (A): {mempool.used_bytes()}")
+        print(f"Def Memory Pool tota (A): {mempool.total_bytes()}")
 
         inputs = [
                 k
