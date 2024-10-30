@@ -234,9 +234,9 @@ def setup_jace(device="cpu"):
             # According to the CuPy doc (https://docs.cupy.dev/en/stable/user_guide/memory.html)
             #  this will disable caching of the allocations.
             import cupy as cp
-            cp.cuda.set_allocator(None)
-            cp.cuda.set_pinned_memory_allocator(None)
-            cp.cuda.stream.get_current_stream().synchronize()
+            #cp.cuda.set_allocator(None)
+            #cp.cuda.set_pinned_memory_allocator(None)
+            #cp.cuda.stream.get_current_stream().synchronize()
         yield jace
 
 __backends__ = {
